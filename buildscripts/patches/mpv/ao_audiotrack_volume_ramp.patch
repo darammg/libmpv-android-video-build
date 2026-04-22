@@ -1,0 +1,48 @@
+diff --git a/audio/out/ao_audiotrack.c b/audio/out/ao_audiotrack.c
+index 3fd68e5..0d72722 100644
+--- a/audio/out/ao_audiotrack.c
++++ b/audio/out/ao_audiotrack.c
+@@ -90,6 +90,7 @@ struct JNIAudioTrack {
+     jmethodID stop;
+     jmethodID flush;
+     jmethodID pause;
++    jmethodID setVolume;
+     jmethodID write;
+     jmethodID writeFloat;
+     jmethodID writeShortV23;
+@@ -123,6 +124,7 @@ struct JNIAudioTrack {
+     {"android/media/AudioTrack", "stop", "()V", MP_JNI_METHOD, OFFSET(stop), 1},
+     {"android/media/AudioTrack", "flush", "()V", MP_JNI_METHOD, OFFSET(flush), 1},
+     {"android/media/AudioTrack", "pause", "()V", MP_JNI_METHOD, OFFSET(pause), 1},
++    {"android/media/AudioTrack", "setVolume", "(F)I", MP_JNI_METHOD, OFFSET(setVolume), 0},
+     {"android/media/AudioTrack", "write", "([BII)I", MP_JNI_METHOD, OFFSET(write), 1},
+     {"android/media/AudioTrack", "write", "([FIII)I", MP_JNI_METHOD, OFFSET(writeFloat), 1},
+     {"android/media/AudioTrack", "write", "([SIII)I", MP_JNI_METHOD, OFFSET(writeShortV23), 0},
+@@ -803,6 +805,15 @@ static void stop(struct ao *ao)
+     }
+ 
+     JNIEnv *env = MP_JNI_GET_ENV(ao);
++    // Mute before pause to prevent AudioTrack hardware transient (pop/click).
++    // AudioTrack.setVolume() takes effect at hardware level, unlike mpv software volume.
++    if (AudioTrack.setVolume) {
++        MP_JNI_CALL_INT(p->audiotrack, AudioTrack.setVolume, 0.0f);
++        MP_JNI_EXCEPTION_LOG(ao);
++        // Wait for AudioFlinger to apply the gain change (mixing period ~5-15ms).
++        // 30ms gives a safe margin; imperceptible to users.
++        mp_sleep_ns(30000000LL);
++    }
+     MP_JNI_CALL_VOID(p->audiotrack, AudioTrack.pause);
+     MP_JNI_EXCEPTION_LOG(ao);
+     MP_JNI_CALL_VOID(p->audiotrack, AudioTrack.flush);
+@@ -827,6 +838,11 @@ static void start(struct ao *ao)
+     JNIEnv *env = MP_JNI_GET_ENV(ao);
+     MP_JNI_CALL_VOID(p->audiotrack, AudioTrack.play);
+     MP_JNI_EXCEPTION_LOG(ao);
++    // Restore volume after play (was muted in stop()).
++    if (AudioTrack.setVolume) {
++        MP_JNI_CALL_INT(p->audiotrack, AudioTrack.setVolume, 1.0f);
++        MP_JNI_EXCEPTION_LOG(ao);
++    }
+ 
+     pthread_cond_signal(&p->wakeup);
+ }

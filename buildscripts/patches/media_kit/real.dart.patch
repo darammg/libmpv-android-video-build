@@ -1,0 +1,31 @@
+--- /tmp/real.dart.upstream	2026-04-22 23:48:54
++++ /Users/darammg/.pub-cache/hosted/pub.dev/media_kit-1.2.6/lib/src/player/native/player/real.dart	2026-04-08 03:38:38
+@@ -2323,6 +2323,10 @@
+         // Set --vid=no by default to prevent redundant video decoding.
+         // [VideoController] internally sets --vid=auto upon attachment to enable video rendering & decoding.
+         if (!test) 'vid': 'no',
++        // ao must be set via mpv_set_option_string BEFORE mpv_initialize.
++        // Setting it via mpv_set_property_string after init has no effect.
++        if (Platform.isAndroid && (AndroidHelper.isPhysicalDevice || AndroidHelper.APILevel > 25))
++          'ao': 'audiotrack',
+       };
+ 
+       if (Platform.isAndroid &&
+@@ -2406,7 +2410,7 @@
+         'sigmoid-upscaling': 'no',
+         'hdr-compute-peak': 'no',
+         if (AndroidHelper.isPhysicalDevice || AndroidHelper.APILevel > 25)
+-          'ao': 'opensles'
++          'ao': 'audiotrack'
+         // Disable audio output on older Android emulators with API Level < 25.
+         // OpenSL ES audio output seems to be broken on some of these.
+         else if (AndroidHelper.isEmulator && AndroidHelper.APILevel <= 25)
+@@ -2908,7 +2912,7 @@
+         if (map.values[j].format == generated.mpv_format.MPV_FORMAT_STRING) {
+           if (property == 'filename') {
+             final value = map.values[j].u.string.cast<Utf8>().toDartString();
+-            playlist.add(removePrefix(value));
++            playlist.add(value);
+           }
+         }
+       }
