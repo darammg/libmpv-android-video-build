@@ -32,9 +32,9 @@ meson setup $build --cross-file "$prefix_dir"/crossfile.txt \
 	-Diconv=enabled \
 	-Duchardet=enabled \
 	-Dvulkan=disabled \
-   	-Dlibplacebo=disabled \
+	-Daaudio=disabled \
  	-Dmanpage-build=disabled \
-	-Dc_link_args="['-lc++_static', '-lc++abi']"
+	-Dc_link_args="['-lc++_static', '-lc++abi', '-Wl,-z,max-page-size=16384']"
 
 ninja -C $build -j$cores
 DESTDIR="$prefix_dir" ninja -C $build install

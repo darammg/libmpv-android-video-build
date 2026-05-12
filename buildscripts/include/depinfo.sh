@@ -10,11 +10,12 @@ v_libass=0.17.1
 v_harfbuzz=7.2.0
 v_fribidi=1.0.12
 v_freetype=2-13-0
-v_mbedtls=3.4.0
-v_dav1d=1.2.0
+v_mbedtls=3.6.6
+v_dav1d=1.5.3
 v_libxml2=2.10.3
-v_ffmpeg=6.0
-v_mpv=78d43740f52db817d98bcf24fb30a76ab6fa13ff
+v_ffmpeg=8.1.1
+v_mpv=v0.41.0
+v_libplacebo=v7.360.1
 v_libogg=1.3.5
 v_libvorbis=1.3.7
 v_libvpx=1.13
@@ -25,6 +26,7 @@ v_libvpx=1.13
 
 dep_mbedtls=()
 dep_dav1d=()
+dep_libplacebo=()
 dep_libvorbis=(libogg)
 if [ -n "${ENCODERS_GPL+x}" ]; then
 	dep_ffmpeg=(mbedtls dav1d libxml2 libvorbis libvpx libx264)
@@ -38,7 +40,7 @@ dep_libass=(freetype fribidi harfbuzz)
 dep_lua=()
 dep_shaderc=()
 if [ -n "${ENCODERS_GPL+x}" ]; then
-	dep_mpv=(ffmpeg libass fftools_ffi)
+	dep_mpv=(ffmpeg libass libplacebo fftools_ffi)
 else
-	dep_mpv=(ffmpeg libass)
+	dep_mpv=(ffmpeg libass libplacebo)
 fi
