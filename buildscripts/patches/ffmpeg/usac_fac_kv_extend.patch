@@ -1,0 +1,26 @@
+diff --git a/libavcodec/aac/aacdec.h b/libavcodec/aac/aacdec.h
+index c67246e..af8383f 100644
+--- a/libavcodec/aac/aacdec.h
++++ b/libavcodec/aac/aacdec.h
+@@ -151,7 +151,7 @@ typedef struct AACUsacElemData {
+ 
+     struct {
+         uint8_t gain;
+-        uint32_t kv[8 /* (1024 / 16) / 8 */][8];
++        uint32_t kv[16 /* (2048 / 16) / 8 — supports frame_size up to 2048 */][8];
+     } fac;
+ 
+     AACArithState ac;
+diff --git a/libavcodec/aac/aacdec_lpd.c b/libavcodec/aac/aacdec_lpd.c
+index 93be7a7..10bb067 100644
+--- a/libavcodec/aac/aacdec_lpd.c
++++ b/libavcodec/aac/aacdec_lpd.c
+@@ -97,7 +97,7 @@ int ff_aac_parse_fac_data(AACUsacElemData *ce, GetBitContext *gb,
+     if (use_gain)
+         ce->fac.gain = get_bits(gb, 7);
+ 
+-    if (len/8 > 8)
++    if (len/8 > 16)
+         return AVERROR_PATCHWELCOME;
+ 
+     for (int i = 0; i < len/8; i++) {
