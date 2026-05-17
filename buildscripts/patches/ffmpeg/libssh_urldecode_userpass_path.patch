@@ -1,0 +1,57 @@
+diff --git a/libavformat/libssh.c b/libavformat/libssh.c
+index f71b89e..3a25288 100644
+--- a/libavformat/libssh.c
++++ b/libavformat/libssh.c
+@@ -29,6 +29,7 @@
+ #include "avformat.h"
+ #include "internal.h"
+ #include "url.h"
++#include "urldecode.h"
+ 
+ typedef struct {
+     const AVClass *class;
+@@ -204,6 +205,16 @@ static av_cold int libssh_connect(URLContext *h, const char *url, char *path, si
+ 
+     if (!(*path))
+         av_strlcpy(path, "/", path_size);
++    else {
++        /* mpv percent-encodes non-ASCII path components (e.g. Korean
++           filenames); av_url_split does not decode them, so SFTP would
++           get the literal %XX and fail with "No such file". Decode here. */
++        char *dec_path = ff_urldecode(path, 0);
++        if (dec_path) {
++            av_strlcpy(path, dec_path, path_size);
++            av_free(dec_path);
++        }
++    }
+ 
+     // a port of 0 will use a port from ~/.ssh/config or the default value 22
+     if (port < 0 || port > 65535)
+@@ -215,7 +226,26 @@ static av_cold int libssh_connect(URLContext *h, const char *url, char *path, si
+     user = av_strtok(credentials, ":", &end);
+     pass = av_strtok(end, ":", &end);
+ 
+-    if ((ret = libssh_authentication(libssh, user, pass)) < 0)
++    /* The application percent-encodes the userinfo so the sftp:// URL stays
++       parseable when the password contains reserved characters (@ : / # ...).
++       av_url_split does not decode it, so decode user/pass here before
++       authenticating — otherwise non-trivial passwords fail auth. */
++    {
++        char *dec_user = user ? ff_urldecode(user, 0) : NULL;
++        char *dec_pass = pass ? ff_urldecode(pass, 0) : NULL;
++        if ((user && !dec_user) || (pass && !dec_pass)) {
++            av_free(dec_user);
++            av_free(dec_pass);
++            return AVERROR(ENOMEM);
++        }
++        ret = libssh_authentication(libssh,
++                                    dec_user ? dec_user : user,
++                                    dec_pass ? dec_pass : pass);
++        av_free(dec_user);
++        av_free(dec_pass);
++    }
++
++    if (ret < 0)
+         return ret;
+ 
+     if ((ret = libssh_create_sftp_session(libssh)) < 0)
